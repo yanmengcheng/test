@@ -1,0 +1,61 @@
+name: Build PyTorch3D Wheel
+
+on:
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+
+    steps:
+    - name: Checkout PyTorch3D
+      run: |
+        git clone https://github.com/facebookresearch/pytorch3d.git
+        cd pytorch3d
+        git checkout 06a76ef8ddd00b6c889768dfc990ae8cb07c6f2f
+
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install CUDA Toolkit 12.4
+      run: |
+        wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/cuda-keyring_1.0-1_all.deb
+        sudo dpkg -i cuda-keyring_1.0-1_all.deb
+        sudo apt-get update
+        sudo apt-get install -y cuda-toolkit-12-4
+        echo "CUDA_HOME=/usr/local/cuda-12.4" >> $GITHUB_ENV
+        echo "/usr/local/cuda-12.4/bin" >> $GITHUB_PATH
+        echo "LD_LIBRARY_PATH=/usr/local/cuda-12.4/lib64:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+
+    - name: Install PyTorch 2.5.1 with CUDA 12.4
+      run: |
+        pip install torch==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cu124
+
+    - name: Install NVIDIA CUB
+      run: |
+        git clone --depth 1 --branch 2.1.0 https://github.com/NVIDIA/cub.git
+        sudo cp -r cub/cub /usr/local/cuda-12.4/include/
+
+    - name: Install build dependencies
+      run: |
+        pip install ninja wheel setuptools
+
+    - name: Build PyTorch3D wheel
+      run: |
+        cd pytorch3d
+        python setup.py bdist_wheel
+
+    - name: Upload wheel as artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: pytorch3d-wheel
+        path: pytorch3d/dist/*.whl
+        retention-days: 7
+
+    - name: Display build info
+      run: |
+        cd pytorch3d
+        ls -lh dist/
+        python -c "import torch; print(f'PyTorch: {torch.__version__}'); print(f'CUDA: {torch.version.cuda}')"
