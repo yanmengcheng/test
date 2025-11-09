@@ -24,7 +24,10 @@ jobs:
         wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
         sudo dpkg -i cuda-keyring_1.1-1_all.deb
         sudo apt-get update
-        sudo apt-get install -y cuda-toolkit-12-4
+        # 只安装编译所需的核心组件，避免安装有依赖问题的nsight-systems
+        sudo apt-get install -y cuda-nvcc-12-4 cuda-cudart-dev-12-4 cuda-compiler-12-4 \
+          cuda-libraries-dev-12-4 libcublas-dev-12-4 libcufft-dev-12-4 libcurand-dev-12-4 \
+          libcusparse-dev-12-4 libcusolver-dev-12-4
         echo "CUDA_HOME=/usr/local/cuda-12.4" >> $GITHUB_ENV
         echo "/usr/local/cuda-12.4/bin" >> $GITHUB_PATH
         echo "LD_LIBRARY_PATH=/usr/local/cuda-12.4/lib64:$LD_LIBRARY_PATH" >> $GITHUB_ENV
